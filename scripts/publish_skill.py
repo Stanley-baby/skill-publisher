@@ -3,16 +3,7 @@
 Skill Publisher — 检查并发布 Claude Code Skill 到 GitHub
 
 用法:
-  python3 publish_skill.py <skill_dir> [--github-user USER] [--public/--private] [--dry-run] [--branch BRANCH] [--protect]
-
-流程:
-  1. 验证 SKILL.md (YAML frontmatter)
-  2. 检查/创建 LICENSE
-  3. 生成 README.md
-  4. 初始化 git (如需)
-  5. 创建 GitHub repo + push
-  6. 开启分支保护 (可选)
-  7. 验证 npx skills 可发现
+  python3 publish_skill.py <skill_dir> [--github-user USER] [--public/--private] [--dry-run] [--branch BRANCH] [--protect] [--update-readme]
 """
 
 import os
@@ -24,14 +15,7 @@ import json
 import datetime
 import fnmatch
 
-# 隐私目录模式 - 发布时自动排除
-PRIVACY_PATTERNS = [
-    'memory/',
-    'data/',
-    'private/',
-    '.env',
-    '*.log',
-]
+PRIVACY_PATTERNS = ['memory/', 'data/', 'private/', '.env', '*.log']
 
 
 def filter_privacy_files(skill_dir):
@@ -47,7 +31,6 @@ def filter_privacy_files(skill_dir):
 
 
 def run(cmd, capture=True, check=True, cwd=None):
-    """Run a shell command and return stdout."""
     if isinstance(cmd, list):
         r = subprocess.run(cmd, capture_output=capture, text=True, cwd=cwd)
     else:
@@ -58,7 +41,6 @@ def run(cmd, capture=True, check=True, cwd=None):
 
 
 def check_prerequisites():
-    """Check gh CLI is available and authenticated."""
     if not run("which gh"):
         print("[错误] 未找到 gh CLI。安装方式: brew install gh", file=sys.stderr)
         return False
@@ -70,7 +52,6 @@ def check_prerequisites():
 
 
 def parse_yaml_frontmatter(skill_md_path):
-    """Extract name and description from SKILL.md YAML frontmatter."""
     with open(skill_md_path, "r") as f:
         content = f.read()
     m = re.match(r"^---\s*\n(.*?)\n---", content, re.DOTALL)
@@ -93,12 +74,10 @@ def parse_yaml_frontmatter(skill_md_path):
 
 
 def get_github_user():
-    """Get current GitHub username."""
     return run("gh api user --jq '.login'")
 
 
 def validate_skill(skill_dir):
-    """Validate skill directory structure."""
     errors = []
     skill_md = os.path.join(skill_dir, "SKILL.md")
     if not os.path.exists(skill_md):
@@ -117,7 +96,6 @@ def validate_skill(skill_dir):
 
 
 def ensure_license(skill_dir, github_user):
-    """Create MIT LICENSE if missing."""
     license_path = os.path.join(skill_dir, "LICENSE")
     if os.path.exists(license_path):
         return False
@@ -150,10 +128,10 @@ SOFTWARE.
     return True
 
 
-def generate_readme(skill_dir, name, desc, github_user):
-    """Generate README.md from SKILL.md content."""
+def generate_readme(skill_dir, name, desc, github_user, force=False):
+    """Generate a beautiful README.md from SKILL.md content."""
     readme_path = os.path.join(skill_dir, "README.md")
-    if os.path.exists(readme_path):
+    if os.path.exists(readme_path) and not force:
         return False
 
     skill_md = os.path.join(skill_dir, "SKILL.md")
@@ -168,7 +146,22 @@ def generate_readme(skill_dir, name, desc, github_user):
 
     readme = f"""# {name}
 
-{short_desc}
+<p align="center">
+  <h1>{title}</h1>
+  <p>{short_desc}</p>
+</p>
+
+---
+
+## 特性
+
+- 一键发布，自动化程度高
+- 自动验证 SKILL.md 格式
+- 支持私有/公开仓库
+- 支持自定义分支
+- 可选分支保护
+
+---
 
 ## 安装
 
@@ -176,12 +169,38 @@ def generate_readme(skill_dir, name, desc, github_user):
 npx skills add {github_user}/{name}
 ```
 
+---
+
+## 快速开始
+
+### 基本使用
+
+```bash
+python3 ~/.claude/skills/{name}/scripts/publish_skill.py ~/.claude/skills/{name}
+```
+
+### 参数选项
+
+| 参数 | 说明 |
+|------|------|
+| `--private` | 创建私有仓库（默认公开） |
+| `--dry-run` | 仅检查，不实际发布 |
+| `--skip-verify` | 跳过 npx skills 验证 |
+| `--branch BRANCH` | 发布到指定分支 |
+| `--protect` | 开启分支保护 |
+| `--update-readme` | 强制更新 README |
+
+---
+
+## 详细文档
+
 {body}
+
+---
 
 ## License
 
 MIT
-
 """
     with open(readme_path, "w") as f:
         f.write(readme)
@@ -189,7 +208,6 @@ MIT
 
 
 def init_git(skill_dir):
-    """Initialize git repo if needed."""
     git_dir = os.path.join(skill_dir, ".git")
     if os.path.isdir(git_dir):
         return False
@@ -200,44 +218,36 @@ def init_git(skill_dir):
 def protect_branch(github_user, repo, branch="main"):
     """Enable branch protection for specified branch."""
     print(f"[信息] 开启分支保护: {branch}")
-    
-    # Protection settings
+
     protection_data = {
-        "required_status_checks": None,
-        "enforce_admins": True,
         "required_pull_request_reviews": {
-            "dismiss_stale_reviews": True,
-            "require_code_owner_reviews": True,
             "required_approving_review_count": 1
         },
+        "required_status_checks": None,
         "restrictions": None,
-        "block_creations": False,
-        "require_linear_history": False,
-        "allow_force_pushes": False,
-        "allow_deletions": False
+        "enforce_admins": True,
+        "allow_force_pushes": False
     }
-    
-    # Check if protection already exists
+
     check = run(
         f"gh api repos/{github_user}/{repo}/branches/{branch}/protection",
         check=False
     )
-    
+
     if check and "url" in (check or ""):
         print(f"[信息] 分支 {branch} 保护规则已存在")
         return True
-    
-    # Create protection via gh api
+
     json_str = json.dumps(protection_data)
     create_result = run(
         f'echo \'{json_str}\' | gh api -X PUT repos/{github_user}/{repo}/branches/{branch}/protection --input -',
         check=False
     )
-    
+
     if create_result and ("url" in (create_result or "") or "html_url" in (create_result or "")):
         print(f"✅ 分支 {branch} 保护已开启 (PR + 禁止强制推送)")
         return True
-    
+
     print(f"[警告] 分支保护设置可能未完全生效，请手动检查")
     return False
 
@@ -247,7 +257,6 @@ def create_and_push(skill_dir, name, desc, github_user, public=True, branch=None
     visibility = "--public" if public else "--private"
     target_branch = branch or "main"
 
-    # Check if repo already exists
     existing = run(f"gh repo view {github_user}/{name} --json url --jq '.url' 2>/dev/null", check=False)
     if existing and "github.com" in existing:
         print(f"[信息] 仓库已存在: {existing}")
@@ -262,21 +271,17 @@ def create_and_push(skill_dir, name, desc, github_user, public=True, branch=None
         if not remote_branch:
             print(f"[信息] 远程分支 {target_branch} 不存在，将创建新分支")
         run(f"git push -u origin HEAD:{target_branch} 2>&1", cwd=skill_dir, check=False)
-        
-        # Enable protection if requested
+
         if protect:
             protect_branch(github_user, name, target_branch)
-        
+
         return existing
 
-    # Short description for GitHub
     gh_desc = desc[:150] if len(desc) > 150 else desc
 
-    # Commit all files
     run("git add -A", cwd=skill_dir)
     run(f'git commit -m "Initial release: {name}"', cwd=skill_dir)
 
-    # Create repo and push
     result = run(
         ["gh", "repo", "create", f"{github_user}/{name}", visibility,
          "--description", gh_desc, "--source", ".", "--push"],
@@ -287,18 +292,16 @@ def create_and_push(skill_dir, name, desc, github_user, public=True, branch=None
         if branch and branch != "main":
             print(f"[信息] 推送到分支: {branch}")
             run(f"git push -u origin HEAD:{branch} 2>&1", cwd=skill_dir, check=False)
-        
-        # Enable protection if requested
+
         if protect:
             protect_branch(github_user, name, target_branch)
-        
+
         return url
     print(f"[错误] 创建仓库失败: {result}", file=sys.stderr)
     return None
 
 
 def verify_skill(github_user, name):
-    """Verify skill is discoverable via npx skills."""
     result = run(f"npx skills add {github_user}/{name} --list 2>&1", check=False)
     if result and name in result:
         return True
@@ -314,6 +317,7 @@ def main():
     parser.add_argument("--skip-verify", action="store_true", help="跳过 npx skills 验证")
     parser.add_argument("--branch", help="发布到指定分支 (默认 main)")
     parser.add_argument("--protect", action="store_true", help="开启分支保护 (PR + 禁止强制推送)")
+    parser.add_argument("--update-readme", action="store_true", help="强制更新 README.md (同步 SKILL.md 变化)")
     args = parser.parse_args()
 
     skill_dir = os.path.abspath(args.skill_dir)
@@ -323,7 +327,6 @@ def main():
 
     print(f"\n🔍 检查 Skill: {skill_dir}\n")
 
-    # Step 1: Validate
     errors, name, desc = validate_skill(skill_dir)
     if errors:
         print("❌ 验证失败:")
@@ -332,7 +335,6 @@ def main():
         sys.exit(1)
     print(f"✅ SKILL.md 验证通过 (name: {name})")
 
-    # Step 2: Prerequisites
     if not check_prerequisites():
         sys.exit(1)
     print("✅ gh CLI 已就绪")
@@ -343,19 +345,19 @@ def main():
         sys.exit(1)
     print(f"✅ GitHub 用户: {github_user}")
 
-    # Step 3: Ensure LICENSE
     if ensure_license(skill_dir, github_user):
         print("📄 已创建 LICENSE (MIT)")
     else:
         print("✅ LICENSE 已存在")
 
-    # Step 4: Generate README
-    if generate_readme(skill_dir, name, desc, github_user):
+    if generate_readme(skill_dir, name, desc, github_user, force=args.update_readme):
         print("📄 已生成 README.md")
     else:
-        print("✅ README.md 已存在")
+        if args.update_readme:
+            print("📄 README.md 已更新")
+        else:
+            print("✅ README.md 已存在")
 
-    # 隐私检查
     filtered = filter_privacy_files(skill_dir)
     if filtered:
         print(f"[⚠️] 检测到隐私目录/文件: {len(filtered)} 个（发布时将排除）")
@@ -370,23 +372,20 @@ def main():
         print(f"   python3 {__file__} {skill_dir}")
         return
 
-    # Step 5: Git init
     if init_git(skill_dir):
         print("📦 已初始化 git 仓库")
     else:
         print("✅ git 仓库已存在")
 
-    # Step 6: Create repo and push
     public = not args.private
     print(f"\n🚀 发布到 GitHub ({'公开' if public else '私有'})...")
-    url = create_and_push(skill_dir, name, desc, github_user, public=public, 
+    url = create_and_push(skill_dir, name, desc, github_user, public=public,
                          branch=args.branch, protect=args.protect)
     if not url:
         print("❌ 发布失败", file=sys.stderr)
         sys.exit(1)
     print(f"✅ GitHub: {url}")
 
-    # Step 7: Verify
     if not args.skip_verify:
         print("\n🔎 验证 npx skills 可发现...")
         if verify_skill(github_user, name):
@@ -394,7 +393,6 @@ def main():
         else:
             print("⚠️  验证未通过（可能需要等待几秒后重试）")
 
-    # Summary
     print(f"\n{'='*60}")
     print(f"🎉 发布成功！")
     print(f"   仓库: {url}")
