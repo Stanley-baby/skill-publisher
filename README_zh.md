@@ -2,10 +2,10 @@
 
 <p align="center">
   <h1>Skill Publisher</h1>
-  <p>一键发布 Claude Code Skill 到 GitHub，自动验证、补全文件、创建仓库、推送并验证可安装.</p>
+  <p>一键发布 Claude Code Skill 到 GitHub，自动验证、补全文件、创建仓库、推送并验证可安装。</p>
 </p>
 
-[[English](README.md)] | [[中文](README_zh.md)]
+[[English](README.md)] | [中文]
 
 ---
 

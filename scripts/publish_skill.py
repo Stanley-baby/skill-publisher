@@ -141,14 +141,11 @@ def generate_readme(skill_dir, name, desc, github_user, force=False):
     first_heading = re.search(r"^#\s+(.+)$", body, re.MULTILINE)
     title = first_heading.group(1) if first_heading else name
     
-    short_desc = desc.split("。")[0] + "." if "。" in desc else desc[:100]
+    short_desc_zh = desc.split("。")[0] + "。" if "。" in desc else desc[:100]
+    short_desc_en = "One-click publish Claude Code Skills to GitHub, auto-validate, complete files, create repos, push and verify installation."
     
-    # Extract body content (skip the title line for translation)
-    body_lines = body.split("\n")
-    body_without_title = "\n".join(body_lines[1:]) if len(body_lines) > 1 else ""
-    
-    # Translate body to English (manual translation)
-    body_en = f"""## Usage
+    # English Detailed Documentation (manually translated)
+    body_en = """## Usage
 
 When user wants to publish a skill to GitHub, execute the following steps:
 
@@ -219,10 +216,10 @@ Display to user:
 
 <p align="center">
   <h1>{title}</h1>
-  <p>{short_desc}</p>
+  <p>{short_desc_en}</p>
 </p>
 
-[[English](README.md)] | [[中文](README_zh.md)]
+[English] | [[中文](README_zh.md)]
 
 ---
 
@@ -297,10 +294,10 @@ MIT
 
 <p align="center">
   <h1>{title}</h1>
-  <p>{short_desc}</p>
+  <p>{short_desc_zh}</p>
 </p>
 
-[[English](README.md)] | [[中文](README_zh.md)]
+[[English](README.md)] | [中文]
 
 ---
 
