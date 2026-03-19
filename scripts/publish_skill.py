@@ -11,17 +11,17 @@ import argparse
 import json
 import datetime
 import fnmatch
+import urllib.request
+import urllib.parse
 
 # Optional translation dependencies
 try:
     from langdetect import detect, LangDetectException
-    from deep_translator import GoogleTranslator
-    HAS_TRANSLATION = True
+    HAS_LANGDETECT = True
 except ImportError:
-    HAS_TRANSLATION = False
+    HAS_LANGDETECT = False
     detect = None
     LangDetectException = Exception
-    GoogleTranslator = None
 
 
 PRIVACY_PATTERNS = ['memory/', 'data/', 'private/', '.env', '*.log']
@@ -138,29 +138,43 @@ SOFTWARE.
 
 
 def translate_text(text, target_lang):
-    """Translate text to target language via Google Translate."""
+    """Translate text to target language via MyMemory API (free, works in China)."""
     if not text or len(text.strip()) < 10:
         return text
-    if not HAS_TRANSLATION:
-        print("[INFO] Translation libraries not installed, using original text", file=sys.stderr)
-        return text
-    try:
-        detected = detect(text[:500])
-    except LangDetectException:
-        return text
-    # Map langdetect codes to Google Translate codes
+    
+    # Detect language
+    detected = 'en'
+    if HAS_LANGDETECT:
+        try:
+            detected = detect(text[:500])
+        except LangDetectException:
+            pass
+    
+    # Map langdetect codes to MyMemory codes
     lang_map = {'zh-cn': 'zh-CN', 'zh-tw': 'zh-TW'}
     detected = lang_map.get(detected, detected)
     target_lang_mapped = lang_map.get(target_lang, target_lang)
+    
     # No translation needed if already target language
     if detected == target_lang_mapped:
         return text
+    
+    # Translate using MyMemory API
     try:
-        result = GoogleTranslator(source='auto', target=target_lang_mapped).translate(text)
-        return result if result else text
-    except Exception:
-        print("[WARN] Translation failed, using original text", file=sys.stderr)
-        return text
+        lang_pair = f"{detected}|{target_lang_mapped}"
+        encoded_text = urllib.parse.quote(text[:500].encode('utf-8'))
+        url = f"https://api.mymemory.translated.net/get?q={encoded_text}&langpair={lang_pair}"
+        
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            result = json.loads(response.read().decode('utf-8'))
+            if result.get('responseStatus') == 200:
+                translated = result['responseData']['translatedText']
+                return translated
+    except Exception as e:
+        print(f"[WARN] Translation failed: {e}", file=sys.stderr)
+    
+    return text
 
 
 def generate_readme(skill_dir, name, desc, github_user, force=False):
