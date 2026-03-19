@@ -5,7 +5,7 @@
 ## 安装
 
 ```bash
-npx skills add joeseesun/skill-publisher
+npx skills add Stanley-baby/skill-publisher
 ```
 
 # Skill Publisher
@@ -78,13 +78,3 @@ python3 ~/.claude/skills/skill-publisher/scripts/publish_skill.py <skill_dir>
 
 MIT
 
-## 📱 关注作者
-
-如果这个项目对你有帮助，欢迎关注我获取更多技术分享：
-
-- **X (Twitter)**: [@vista8](https://x.com/vista8)
-- **微信公众号「向阳乔木推荐看」**:
-
-<p align="center">
-  <img src="https://github.com/joeseesun/terminal-boost/raw/main/assets/wechat-qr.jpg?raw=true" alt="向阳乔木推荐看公众号二维码" width="300">
-</p>
