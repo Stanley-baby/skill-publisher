@@ -7,17 +7,19 @@
 
 ---
 
-## 特性
+## Features
 
-- 一键发布，自动化程度高
-- 自动验证 SKILL.md 格式
-- 支持私有/公开仓库
-- 支持自定义分支
-- 可选分支保护
+- One-click publish, high automation
+- Automatic SKILL.md format validation
+- Support private/public repositories
+- Support custom branches
+- Optional branch protection
 
 ---
 
-## 安装
+## Installation
+
+### Claude Code / Open Code / Codex
 
 ```bash
 npx skills add Stanley-baby/skill-publisher
@@ -25,28 +27,59 @@ npx skills add Stanley-baby/skill-publisher
 
 ---
 
-## 快速开始
+## Quick Start
 
-### 基本使用
+### 1. Install AI CLI Tools
+
+| Tool | Install Command |
+|------|----------------|
+| Claude Code | `npm install -g @anthropic-ai/claude-code` |
+| Open Code | `npm install -g opencode-ai` |
+| Codex | `npm install -g @anthropic-ai/codex` |
+
+### 2. Login
+
+| Tool | Login Command |
+|------|---------------|
+| Claude Code | `claude-code login` |
+| Open Code | `opencode login` |
+| Codex | `codex login` |
+
+### 3. Install This Skill
 
 ```bash
-python3 ~/.claude/skills/skill-publisher/scripts/publish_skill.py ~/.claude/skills/skill-publisher
+npx skills add Stanley-baby/skill-publisher
 ```
 
-### 参数选项
+### 4. Publish Skill
 
-| 参数 | 说明 |
-|------|------|
-| `--private` | 创建私有仓库（默认公开） |
-| `--dry-run` | 仅检查，不实际发布 |
-| `--skip-verify` | 跳过 npx skills 验证 |
-| `--branch BRANCH` | 发布到指定分支 |
-| `--protect` | 开启分支保护 |
-| `--update-readme` | 强制更新 README |
+```bash
+# Basic publish
+python3 ~/.claude/skills/skill-publisher/scripts/publish_skill.py ~/.claude/skills/skill-publisher
+
+# Publish with branch protection
+python3 ~/.claude/skills/skill-publisher/scripts/publish_skill.py ~/.claude/skills/skill-publisher --protect
+
+# Publish to feature branch
+python3 ~/.claude/skills/skill-publisher/scripts/publish_skill.py ~/.claude/skills/skill-publisher --branch dev
+```
 
 ---
 
-## 详细文档
+## Options
+
+| Option | Description |
+|--------|-------------|
+| `--private` | Create private repo (default: public) |
+| `--dry-run` | Check only, do not publish |
+| `--skip-verify` | Skip npx skills verification |
+| `--branch BRANCH` | Publish to specified branch |
+| `--protect` | Enable branch protection |
+| `--update-readme` | Force update README |
+
+---
+
+## Documentation
 
 # Skill Publisher
 
