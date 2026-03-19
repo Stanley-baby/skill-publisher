@@ -210,9 +210,8 @@ check if this skill can be published
 
 ---
 
-## Detailed Documentation
-
-{body}
+RH|For complete documentation, see [README_zh.md](README_zh.md).
+TV|
 
 ---
 
@@ -305,115 +304,6 @@ MIT
     with open(readme_zh_path, "w") as f:
         f.write(readme_zh)
     
-    return True
-    """Generate a beautiful README.md from SKILL.md content."""
-    readme_path = os.path.join(skill_dir, "README.md")
-    if os.path.exists(readme_path) and not force:
-        return False
-
-    skill_md = os.path.join(skill_dir, "SKILL.md")
-    with open(skill_md, "r") as f:
-        content = f.read()
-    body = re.sub(r"^---\s*\n.*?\n---\s*\n", "", content, flags=re.DOTALL).strip()
-
-    first_heading = re.search(r"^#\s+(.+)$", body, re.MULTILINE)
-    title = first_heading.group(1) if first_heading else name
-
-    short_desc = desc.split("。")[0] + "。" if "。" in desc else desc[:100]
-
-    readme = f"""# {name}
-
-<p align="center">
-  <h1>{title}</h1>
-  <p>{short_desc}</p>
-</p>
-
----
-
-## Features
-
-- One-click publish, high automation
-- Automatic SKILL.md format validation
-- Support private/public repositories
-- Support custom branches
-- Optional branch protection
-
----
-
-## Installation
-
-### Claude Code / Open Code / Codex
-
-```bash
-npx skills add {github_user}/{name}
-```
-
----
-
-## Quick Start
-
-### 1. Install AI CLI Tools
-
-| Tool | Install Command |
-|------|----------------|
-| Claude Code | `npm install -g @anthropic-ai/claude-code` |
-| Open Code | `npm install -g opencode-ai` |
-| Codex | `npm install -g @anthropic-ai/codex` |
-
-### 2. Login
-
-| Tool | Login Command |
-|------|---------------|
-| Claude Code | `claude-code login` |
-| Open Code | `opencode login` |
-| Codex | `codex login` |
-
-### 3. Install This Skill
-
-```bash
-npx skills add {github_user}/{name}
-```
-
-### 4. Publish Skill
-
-```bash
-# Basic publish
-python3 ~/.claude/skills/{name}/scripts/publish_skill.py ~/.claude/skills/{name}
-
-# Publish with branch protection
-python3 ~/.claude/skills/{name}/scripts/publish_skill.py ~/.claude/skills/{name} --protect
-
-# Publish to feature branch
-python3 ~/.claude/skills/{name}/scripts/publish_skill.py ~/.claude/skills/{name} --branch dev
-```
-
----
-
-## Options
-
-| Option | Description |
-|--------|-------------|
-| `--private` | Create private repo (default: public) |
-| `--dry-run` | Check only, do not publish |
-| `--skip-verify` | Skip npx skills verification |
-| `--branch BRANCH` | Publish to specified branch |
-| `--protect` | Enable branch protection |
-| `--update-readme` | Force update README |
-
----
-
-## Documentation
-
-{body}
-
----
-
-## License
-
-MIT
-"""
-    with open(readme_path, "w") as f:
-        f.write(readme)
     return True
 
 
