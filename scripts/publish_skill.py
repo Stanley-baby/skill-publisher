@@ -12,6 +12,18 @@ import json
 import datetime
 import fnmatch
 
+# Optional translation dependencies
+try:
+    from langdetect import detect, LangDetectException
+    from deep_translator import GoogleTranslator
+    HAS_TRANSLATION = True
+except ImportError:
+    HAS_TRANSLATION = False
+    detect = None
+    LangDetectException = Exception
+    GoogleTranslator = None
+
+
 PRIVACY_PATTERNS = ['memory/', 'data/', 'private/', '.env', '*.log']
 
 
@@ -125,6 +137,32 @@ SOFTWARE.
     return True
 
 
+def translate_text(text, target_lang):
+    """Translate text to target language via Google Translate."""
+    if not text or len(text.strip()) < 10:
+        return text
+    if not HAS_TRANSLATION:
+        print("[INFO] Translation libraries not installed, using original text", file=sys.stderr)
+        return text
+    try:
+        detected = detect(text[:500])
+    except LangDetectException:
+        return text
+    # Map langdetect codes to Google Translate codes
+    lang_map = {'zh-cn': 'zh-CN', 'zh-tw': 'zh-TW'}
+    detected = lang_map.get(detected, detected)
+    target_lang_mapped = lang_map.get(target_lang, target_lang)
+    # No translation needed if already target language
+    if detected == target_lang_mapped:
+        return text
+    try:
+        result = GoogleTranslator(source='auto', target=target_lang_mapped).translate(text)
+        return result if result else text
+    except Exception:
+        print("[WARN] Translation failed, using original text", file=sys.stderr)
+        return text
+
+
 def generate_readme(skill_dir, name, desc, github_user, force=False):
     """Generate bilingual README.md and README_zh.md from SKILL.md content."""
     readme_path = os.path.join(skill_dir, "README.md")
@@ -142,6 +180,10 @@ def generate_readme(skill_dir, name, desc, github_user, force=False):
     
     short_desc = desc.split("。")[0] + "." if "。" in desc else desc[:100]
     
+    # Translate body for each language
+    body_en = translate_text(body, 'en')
+    body_zh = translate_text(body, 'zh-CN')
+
     # English README
     readme_en = f"""# {name}
 
@@ -196,7 +238,6 @@ check if this skill can be published
 
 ---
 
-
 ## CLI Options
 
 | Option | Description |
@@ -210,8 +251,9 @@ check if this skill can be published
 
 ---
 
-RH|For complete documentation, see [README_zh.md](README_zh.md).
-TV|
+## Detailed Documentation
+
+{body_en}
 
 ---
 
@@ -289,7 +331,7 @@ npx skills add {github_user}/{name}
 
 ## 详细文档
 
-{body}
+{body_zh}
 
 ---
 
