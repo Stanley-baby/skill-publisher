@@ -126,6 +126,186 @@ SOFTWARE.
 
 
 def generate_readme(skill_dir, name, desc, github_user, force=False):
+    """Generate bilingual README.md and README_zh.md from SKILL.md content."""
+    readme_path = os.path.join(skill_dir, "README.md")
+    readme_zh_path = os.path.join(skill_dir, "README_zh.md")
+    if os.path.exists(readme_path) and os.path.exists(readme_zh_path) and not force:
+        return False
+    
+    skill_md = os.path.join(skill_dir, "SKILL.md")
+    with open(skill_md, "r") as f:
+        content = f.read()
+    body = re.sub(r"^---\s*\n.*?\n---\s*\n", "", content, flags=re.DOTALL).strip()
+    
+    first_heading = re.search(r"^#\s+(.+)$", body, re.MULTILINE)
+    title = first_heading.group(1) if first_heading else name
+    
+    short_desc = desc.split("。")[0] + "." if "。" in desc else desc[:100]
+    
+    # English README
+    readme_en = f"""# {name}
+
+<p align="center">
+  <h1>{title}</h1>
+  <p>{short_desc}</p>
+</p>
+
+[[English](README.md)] | [[中文](README_zh.md)]
+
+---
+
+## Features
+
+- One-click publish, high automation
+- Automatic SKILL.md format validation
+- Support private/public repositories
+- Support custom branches
+- Optional branch protection
+
+---
+
+## Installation
+
+```bash
+npx skills add {github_user}/{name}
+```
+
+---
+
+## Natural Language Usage Examples
+
+### Claude Code / Open Code / Codex
+
+Just tell your AI assistant what you want:
+
+```
+/publish-skill
+
+# Or in natural language:
+publish this skill to GitHub
+
+# Publish to a feature branch:
+push this skill to dev branch
+
+# Publish with branch protection:
+publish this skill with protection
+
+# Dry run first:
+check if this skill can be published
+```
+
+---
+
+
+## CLI Options
+
+| Option | Description |
+|--------|-------------|
+| `--private` | Create private repo (default: public) |
+| `--dry-run` | Check only, do not publish |
+| `--skip-verify` | Skip npx skills verification |
+| `--branch BRANCH` | Publish to specified branch |
+| `--protect` | Enable branch protection |
+| `--update-readme` | Force update README |
+
+---
+
+## Detailed Documentation
+
+{body}
+
+---
+
+## License
+
+MIT
+"""
+    
+    # Chinese README
+    readme_zh = f"""# {name}
+
+<p align="center">
+  <h1>{title}</h1>
+  <p>{short_desc}</p>
+</p>
+
+[[English](README.md)] | [[中文](README_zh.md)]
+
+---
+
+## 特性
+
+- 一键发布，自动化程度高
+- 自动验证 SKILL.md 格式
+- 支持私有/公开仓库
+- 支持自定义分支
+- 可选分支保护
+
+---
+
+## 安装
+
+```bash
+npx skills add {github_user}/{name}
+```
+
+---
+
+## 自然语言使用示例
+
+### Claude Code / Open Code / Codex
+
+直接告诉你的 AI 助手你想要什么：
+
+```
+/publish-skill
+
+# 或者用自然语言：
+发布这个 skill 到 GitHub
+
+# 发布到功能分支：
+发布这个 skill 到 dev 分支
+
+# 发布并开启分支保护：
+发布这个 skill 并开启保护
+
+# 先检查一下：
+检查一下这个 skill 能不能发布
+```
+
+---
+
+## CLI 参数选项
+
+| 参数 | 说明 |
+|------|------|
+| `--private` | 创建私有仓库（默认公开） |
+| `--dry-run` | 仅检查，不实际发布 |
+| `--skip-verify` | 跳过 npx skills 验证 |
+| `--branch BRANCH` | 发布到指定分支 |
+| `--protect` | 开启分支保护 |
+| `--update-readme` | 强制更新 README |
+
+---
+
+## 详细文档
+
+{body}
+
+---
+
+## License
+
+MIT
+"""
+    
+    with open(readme_path, "w") as f:
+        f.write(readme_en)
+    
+    with open(readme_zh_path, "w") as f:
+        f.write(readme_zh)
+    
+    return True
     """Generate a beautiful README.md from SKILL.md content."""
     readme_path = os.path.join(skill_dir, "README.md")
     if os.path.exists(readme_path) and not force:
