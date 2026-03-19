@@ -150,7 +150,11 @@ SOFTWARE.
     return True
 
 
-def generate_readme(skill_dir, name, desc, github_user):
+def generate_readme(skill_dir, name, desc, github_user, force=False):
+    """Generate README.md from SKILL.md content."""
+    readme_path = os.path.join(skill_dir, "README.md")
+    if os.path.exists(readme_path) and not force:
+        return False
     """Generate README.md from SKILL.md content."""
     readme_path = os.path.join(skill_dir, "README.md")
     if os.path.exists(readme_path):
@@ -314,6 +318,7 @@ def main():
     parser.add_argument("--skip-verify", action="store_true", help="跳过 npx skills 验证")
     parser.add_argument("--branch", help="发布到指定分支 (默认 main)")
     parser.add_argument("--protect", action="store_true", help="开启分支保护 (PR + 禁止强制推送)")
+    parser.add_argument("--update-readme", action="store_true", help="强制更新 README.md (同步 SKILL.md 变化)")
     args = parser.parse_args()
 
     skill_dir = os.path.abspath(args.skill_dir)
@@ -350,6 +355,13 @@ def main():
         print("✅ LICENSE 已存在")
 
     # Step 4: Generate README
+    if generate_readme(skill_dir, name, desc, github_user, force=args.update_readme):
+        print("📄 已生成 README.md")
+    else:
+        if args.update_readme:
+            print("📄 README.md 已更新")
+        else:
+            print("✅ README.md 已存在")
     if generate_readme(skill_dir, name, desc, github_user):
         print("📄 已生成 README.md")
     else:
