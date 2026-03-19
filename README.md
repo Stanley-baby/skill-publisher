@@ -51,7 +51,6 @@ check if this skill can be published
 
 ---
 
-
 ## CLI Options
 
 | Option | Description |
